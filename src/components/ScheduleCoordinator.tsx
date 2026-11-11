@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Match } from '../types/fixture';
 import { Calendar, Clock, MapPin, AlertTriangle, CheckCircle, ChevronRight, Zap } from 'lucide-react';
 import { ConflictNotice } from '../utils/conflictDetector';
+import { SOMISA_CREST_URL } from '../utils/assets';
 
 interface ScheduleCoordinatorProps {
   matches: Match[];
@@ -77,7 +78,7 @@ export const ScheduleCoordinator: React.FC<ScheduleCoordinatorProps> = ({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img
-              src="/assets/aistudio/SOMI_SIN_FONDO_9a531ff6.png"
+              src={SOMISA_CREST_URL}
               alt="Escudo SOMISA"
               className="w-11 h-11 object-contain drop-shadow-xs"
               referrerPolicy="no-referrer"

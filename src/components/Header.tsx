@@ -1,5 +1,6 @@
 import React from 'react';
 import { Calendar, FileSpreadsheet, Send, Users, ShieldAlert, Sparkles, Printer } from 'lucide-react';
+import { SOMISA_CREST_URL } from '../utils/assets';
 
 interface HeaderProps {
   activeTab: 'planilla' | 'coordinador' | 'entrenadores' | 'padres' | 'clubes';
@@ -23,7 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Zone 1: Single Brand wordmark with official crest */}
           <div className="flex items-center gap-2.5 shrink-0">
             <img
-              src="/assets/aistudio/SOMI_SIN_FONDO_9a531ff6.png"
+              src={SOMISA_CREST_URL}
               alt="Escudo Club SOMISA"
               className="w-10 h-10 object-contain drop-shadow-xs"
               referrerPolicy="no-referrer"

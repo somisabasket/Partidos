@@ -17,6 +17,7 @@ import {
   X,
   Sparkles,
 } from 'lucide-react';
+import { SOMISA_CREST_URL } from '../utils/assets';
 
 interface CoachNotificationsProps {
   matches: Match[];
@@ -191,7 +192,7 @@ export const CoachNotifications: React.FC<CoachNotificationsProps> = ({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img
-              src="/assets/aistudio/SOMI_SIN_FONDO_9a531ff6.png"
+              src={SOMISA_CREST_URL}
               alt="Escudo SOMISA"
               className="w-12 h-12 object-contain drop-shadow-xs"
               referrerPolicy="no-referrer"
@@ -291,7 +292,7 @@ export const CoachNotifications: React.FC<CoachNotificationsProps> = ({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
                 <div className="flex items-start gap-3">
                   <img
-                    src="/assets/aistudio/SOMI_SIN_FONDO_9a531ff6.png"
+                    src={SOMISA_CREST_URL}
                     alt="Escudo SOMISA"
                     className="w-10 h-10 object-contain drop-shadow-xs shrink-0"
                     referrerPolicy="no-referrer"
@@ -436,7 +437,7 @@ export const CoachNotifications: React.FC<CoachNotificationsProps> = ({
             <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-2">
                 <img
-                  src="/assets/aistudio/SOMI_SIN_FONDO_9a531ff6.png"
+                  src={SOMISA_CREST_URL}
                   alt="Escudo SOMISA"
                   className="w-7 h-7 object-contain"
                   referrerPolicy="no-referrer"

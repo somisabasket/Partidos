@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Match } from '../types/fixture';
 import { MessageSquare, Copy, Check, ExternalLink, Calendar, Clock, MapPin, Shirt, AlertCircle, Share2 } from 'lucide-react';
+import { SOMISA_CREST_URL } from '../utils/assets';
 
 interface ParentsMessagesProps {
   matches: Match[];
@@ -120,7 +121,7 @@ export const ParentsMessages: React.FC<ParentsMessagesProps> = ({ matches }) => 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img
-              src="/assets/aistudio/SOMI_SIN_FONDO_9a531ff6.png"
+              src={SOMISA_CREST_URL}
               alt="Escudo SOMISA"
               className="w-11 h-11 object-contain drop-shadow-xs"
               referrerPolicy="no-referrer"
@@ -301,7 +302,7 @@ export const ParentsMessages: React.FC<ParentsMessagesProps> = ({ matches }) => 
                   {/* WhatsApp top bar */}
                   <div className="bg-[#075e54] text-white px-3 py-2 rounded-lg flex items-center gap-2.5 shadow-xs">
                     <img
-                      src="/assets/aistudio/SOMI_SIN_FONDO_9a531ff6.png"
+                      src={SOMISA_CREST_URL}
                       alt="SOMISA Básquet"
                       className="w-7 h-7 object-contain bg-white rounded-full p-0.5"
                       referrerPolicy="no-referrer"

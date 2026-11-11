@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Match } from '../types/fixture';
+import { SOMISA_CREST_URL } from './assets';
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
@@ -29,7 +30,7 @@ export async function exportOfficialSheetPdf(
 
   // Load and embed the official Club SOMISA crest
   try {
-    const crest = await loadImage('/assets/aistudio/SOMI_SIN_FONDO_9a531ff6.png');
+    const crest = await loadImage(SOMISA_CREST_URL);
     if (crest) {
       doc.addImage(crest, 'PNG', 16, 11, 16, 16);
       doc.setTextColor(255, 255, 255);

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { X, Upload, Sparkles, FileText, CheckCircle2, AlertCircle, RefreshCw, Eye } from 'lucide-react';
 import { Match } from '../types/fixture';
+import { INITIAL_MATCHES } from '../data/initialData';
+import { SAMPLE_SHEET_IMG_URL, SOMISA_CREST_URL } from '../utils/assets';
 
 interface UploadSheetModalProps {
   isOpen: boolean;
@@ -56,19 +58,25 @@ export const UploadSheetModal: React.FC<UploadSheetModalProps> = ({
           textData: rawText,
         };
       } else if (activeMode === 'sample') {
-        // Fetch sample from API
-        const sampleRes = await fetch('/api/sample-fixture');
-        const data = await sampleRes.json();
-        if (data.success && data.matches) {
-          onMatchesLoaded(data.matches);
-          setSuccessMessage(`Se cargaron con éxito ${data.matches.length} partidos oficiales de SOMISA.`);
-          setTimeout(() => {
-            onClose();
-          }, 1200);
-          return;
-        } else {
-          throw new Error('No se pudo cargar la muestra.');
+        // Try backend API first, or fallback to INITIAL_MATCHES
+        try {
+          const sampleRes = await fetch('/api/sample-fixture');
+          if (sampleRes.ok) {
+            const data = await sampleRes.json();
+            if (data.success && data.matches) {
+              onMatchesLoaded(data.matches);
+              setSuccessMessage(`Se cargaron con éxito ${data.matches.length} partidos oficiales de SOMISA.`);
+              setTimeout(() => onClose(), 1000);
+              return;
+            }
+          }
+        } catch (e) {
+          // GitHub Pages static mode
         }
+        onMatchesLoaded(INITIAL_MATCHES);
+        setSuccessMessage(`Se cargaron con éxito ${INITIAL_MATCHES.length} partidos oficiales de SOMISA.`);
+        setTimeout(() => onClose(), 1000);
+        return;
       } else {
         setErrorMessage('Por favor seleccione una imagen o ingrese texto para analizar.');
         setIsProcessing(false);
@@ -104,19 +112,22 @@ export const UploadSheetModal: React.FC<UploadSheetModalProps> = ({
     setErrorMessage(null);
     try {
       const sampleRes = await fetch('/api/sample-fixture');
-      const data = await sampleRes.json();
-      if (data.success && data.matches) {
-        onMatchesLoaded(data.matches);
-        setSuccessMessage(`¡27 partidos de SOMISA cargados correctamente!`);
-        setTimeout(() => {
-          onClose();
-        }, 800);
+      if (sampleRes.ok) {
+        const data = await sampleRes.json();
+        if (data.success && data.matches) {
+          onMatchesLoaded(data.matches);
+          setSuccessMessage(`¡27 partidos de SOMISA cargados correctamente!`);
+          setTimeout(() => onClose(), 800);
+          return;
+        }
       }
     } catch (err: any) {
-      setErrorMessage('Error al cargar la planilla de ejemplo.');
-    } finally {
-      setIsProcessing(false);
+      // Fallback for static hosting
     }
+    onMatchesLoaded(INITIAL_MATCHES);
+    setSuccessMessage(`¡27 partidos de SOMISA cargados correctamente!`);
+    setTimeout(() => onClose(), 800);
+    setIsProcessing(false);
   };
 
   return (
@@ -126,7 +137,7 @@ export const UploadSheetModal: React.FC<UploadSheetModalProps> = ({
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-2.5">
             <img
-              src="/assets/aistudio/SOMI_SIN_FONDO_9a531ff6.png"
+              src={SOMISA_CREST_URL}
               alt="Escudo SOMISA"
               className="w-8 h-8 object-contain"
               referrerPolicy="no-referrer"
@@ -200,7 +211,7 @@ export const UploadSheetModal: React.FC<UploadSheetModalProps> = ({
               {showOriginalSampleImage && (
                 <div className="border border-slate-300 rounded overflow-hidden max-h-56 overflow-y-auto bg-slate-900/5">
                   <img
-                    src="/assets/aistudio/WhatsApp_Image_2026-11-10_at_17.33.00_b26e2a22.jpeg"
+                    src={SAMPLE_SHEET_IMG_URL}
                     alt="Planilla Original Torneo Básquet"
                     className="w-full object-contain"
                   />

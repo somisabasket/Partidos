@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, Plus, AlertCircle } from 'lucide-react';
 import { Match, Coach } from '../types/fixture';
 import { CATEGORIES_LIST, COURTS } from '../data/initialData';
+import { SOMISA_CREST_URL } from '../utils/assets';
 
 interface MatchEditModalProps {
   isOpen: boolean;
@@ -95,7 +96,7 @@ export const MatchEditModal: React.FC<MatchEditModalProps> = ({
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-2.5">
             <img
-              src="/assets/aistudio/SOMI_SIN_FONDO_9a531ff6.png"
+              src={SOMISA_CREST_URL}
               alt="Escudo SOMISA"
               className="w-8 h-8 object-contain"
               referrerPolicy="no-referrer"

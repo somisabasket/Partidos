@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Match, ClubContact } from '../types/fixture';
 import { Mail, Copy, Check, ExternalLink, Download, Phone, Building2 } from 'lucide-react';
 import { exportOfficialSheetPdf } from '../utils/pdfExport';
+import { SOMISA_CREST_URL } from '../utils/assets';
 
 interface EmailToClubsProps {
   matches: Match[];
@@ -76,7 +77,7 @@ export const EmailToClubs: React.FC<EmailToClubsProps> = ({ matches, rivalClubs 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img
-              src="/assets/aistudio/SOMI_SIN_FONDO_9a531ff6.png"
+              src={SOMISA_CREST_URL}
               alt="Escudo SOMISA"
               className="w-11 h-11 object-contain drop-shadow-xs"
               referrerPolicy="no-referrer"

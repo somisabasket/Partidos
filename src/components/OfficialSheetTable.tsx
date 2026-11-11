@@ -3,6 +3,7 @@ import { Match } from '../types/fixture';
 import { Download, Calendar, Printer, Plus, Trash2, Edit3, Check, Search, Filter } from 'lucide-react';
 import { exportOfficialSheetPdf } from '../utils/pdfExport';
 import { downloadIcsCalendar, getGoogleCalendarUrl } from '../utils/calendarExport';
+import { SOMISA_CREST_URL } from '../utils/assets';
 
 interface OfficialSheetTableProps {
   matches: Match[];
@@ -92,7 +93,7 @@ export const OfficialSheetTable: React.FC<OfficialSheetTableProps> = ({
       <div className="hidden print:flex items-center justify-between pb-4 border-b-2 border-blue-900 mb-4">
         <div className="flex items-center gap-3">
           <img
-            src="/assets/aistudio/SOMI_SIN_FONDO_9a531ff6.png"
+            src={SOMISA_CREST_URL}
             alt="Escudo Club SOMISA"
             className="w-16 h-16 object-contain"
             referrerPolicy="no-referrer"
@@ -117,7 +118,7 @@ export const OfficialSheetTable: React.FC<OfficialSheetTableProps> = ({
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img
-              src="/assets/aistudio/SOMI_SIN_FONDO_9a531ff6.png"
+              src={SOMISA_CREST_URL}
               alt="Escudo Club SOMISA"
               className="w-11 h-11 object-contain drop-shadow-xs"
               referrerPolicy="no-referrer"

@@ -3,6 +3,7 @@ import { X, FileText, Calendar, Printer, Download, Check, Sparkles, Filter } fro
 import { Match, ClubContact } from '../types/fixture';
 import { exportOfficialSheetPdf } from '../utils/pdfExport';
 import { downloadIcsCalendar } from '../utils/calendarExport';
+import { SOMISA_CREST_URL } from '../utils/assets';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -71,7 +72,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-2.5">
             <img
-              src="/assets/aistudio/SOMI_SIN_FONDO_9a531ff6.png"
+              src={SOMISA_CREST_URL}
               alt="Escudo SOMISA"
               className="w-8 h-8 object-contain"
               referrerPolicy="no-referrer"

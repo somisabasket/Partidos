@@ -11,6 +11,7 @@ import { MatchEditModal } from './components/MatchEditModal';
 import { INITIAL_MATCHES, RIVAL_CLUBS, COACHES } from './data/initialData';
 import { Match, ClubContact, Coach } from './types/fixture';
 import { detectFixtureConflicts } from './utils/conflictDetector';
+import { SOMISA_CREST_URL } from './utils/assets';
 import { AlertTriangle, Sparkles, Calendar, Users, Send, CheckCircle2 } from 'lucide-react';
 
 export default function App() {
@@ -211,7 +212,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <img
-              src="/assets/aistudio/SOMI_SIN_FONDO_9a531ff6.png"
+              src={SOMISA_CREST_URL}
               alt="Escudo SOMISA"
               className="w-7 h-7 object-contain"
               referrerPolicy="no-referrer"
