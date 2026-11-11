@@ -1,0 +1,6 @@
+{
+  "name": "SOMISA Básquet - Coordinador de Partidos y Cronogramas",
+  "description": "Sistema integral de coordinación de partidos, fijación de fechas y horarios, generación de planillas oficiales, notificaciones para entrenadores, mensajes para familias, exportación PDF y calendario sincronizado para Club SOMISA (Formativas y Mini Básquet).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
