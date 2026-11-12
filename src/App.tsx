@@ -5,6 +5,7 @@ import { ScheduleCoordinator } from './components/ScheduleCoordinator';
 import { CoachNotifications } from './components/CoachNotifications';
 import { ParentsMessages } from './components/ParentsMessages';
 import { EmailToClubs } from './components/EmailToClubs';
+import { MesaDeControl } from './components/MesaDeControl';
 import { UploadSheetModal } from './components/UploadSheetModal';
 import { ExportModal } from './components/ExportModal';
 import { MatchEditModal } from './components/MatchEditModal';
@@ -59,7 +60,7 @@ export default function App() {
     return COACHES;
   });
 
-  const [activeTab, setActiveTab] = useState<'planilla' | 'coordinador' | 'entrenadores' | 'padres' | 'clubes'>('planilla');
+  const [activeTab, setActiveTab] = useState<'planilla' | 'coordinador' | 'entrenadores' | 'padres' | 'clubes' | 'mesa'>('planilla');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -148,11 +149,21 @@ export default function App() {
             <span className="text-[10px] text-slate-400 block mt-0.5">Torneo oficial ABSN</span>
           </div>
 
-          <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
-            <span className="text-slate-500 text-[11px] font-semibold block">SOMISA Local</span>
+          <button 
+            onClick={() => setActiveTab('mesa')}
+            className={`text-left p-3 rounded-xl border transition-all shadow-2xs group cursor-pointer ${
+              activeTab === 'mesa' ? 'bg-blue-50/80 border-blue-400 ring-2 ring-blue-600/20' : 'bg-white border-slate-200 hover:border-blue-300'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500 text-[11px] font-semibold block">SOMISA Local</span>
+              <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-1.5 py-0.2 rounded group-hover:bg-blue-700 group-hover:text-white transition-colors">
+                Mesa WA ➔
+              </span>
+            </div>
             <span className="text-xl font-extrabold text-blue-700 font-mono tabular-nums">{somisaHomeCount}</span>
             <span className="text-[10px] text-slate-400 block mt-0.5">Gim. Principal y Gim 2</span>
-          </div>
+          </button>
 
           <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
             <span className="text-slate-500 text-[11px] font-semibold block">SOMISA Visitante</span>
@@ -183,7 +194,12 @@ export default function App() {
             onDeleteMatch={handleDeleteMatch}
             onAddMatch={handleAddMatch}
             onSelectForEdit={handleSelectForEdit}
+            onNavigateToMesa={() => setActiveTab('mesa')}
           />
+        )}
+
+        {activeTab === 'mesa' && (
+          <MesaDeControl matches={matches} />
         )}
 
         {activeTab === 'coordinador' && (

@@ -1,10 +1,10 @@
 import React from 'react';
-import { Calendar, FileSpreadsheet, Send, Users, ShieldAlert, Sparkles, Printer } from 'lucide-react';
+import { Calendar, FileSpreadsheet, Send, Users, ShieldAlert, Sparkles, Printer, ClipboardList } from 'lucide-react';
 import { SOMISA_CREST_URL } from '../utils/assets';
 
 interface HeaderProps {
-  activeTab: 'planilla' | 'coordinador' | 'entrenadores' | 'padres' | 'clubes';
-  setActiveTab: (tab: 'planilla' | 'coordinador' | 'entrenadores' | 'padres' | 'clubes') => void;
+  activeTab: 'planilla' | 'coordinador' | 'entrenadores' | 'padres' | 'clubes' | 'mesa';
+  setActiveTab: (tab: 'planilla' | 'coordinador' | 'entrenadores' | 'padres' | 'clubes' | 'mesa') => void;
   onOpenUpload: () => void;
   onOpenPdf: () => void;
   conflictCount: number;
@@ -42,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Zone 2: Navigation links */}
-          <nav className="hidden md:flex items-center gap-2 lg:gap-4 overflow-x-auto py-2">
+          <nav className="hidden md:flex items-center gap-1.5 lg:gap-3 overflow-x-auto py-2">
             <button
               onClick={() => setActiveTab('planilla')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
@@ -53,6 +53,21 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-blue-700" />
               Planilla Oficial
+            </button>
+
+            <button
+              onClick={() => setActiveTab('mesa')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+                activeTab === 'mesa'
+                  ? 'bg-blue-50 text-blue-800 border border-blue-200/80 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <ClipboardList className="w-3.5 h-3.5 text-blue-700" />
+              <span>Mesa de Control</span>
+              <span className="px-1.5 py-0.2 text-[10px] font-bold bg-emerald-100 text-emerald-800 rounded-full">
+                Local
+              </span>
             </button>
 
             <button
@@ -93,7 +108,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <Users className="w-3.5 h-3.5 text-blue-700" />
-              Mensajes a Familias
+              Mensajes Familias
             </button>
 
             <button
@@ -141,6 +156,14 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           Planilla
+        </button>
+        <button
+          onClick={() => setActiveTab('mesa')}
+          className={`px-2.5 py-1 rounded font-medium whitespace-nowrap ${
+            activeTab === 'mesa' ? 'bg-blue-700 text-white' : 'text-slate-700'
+          }`}
+        >
+          Mesa Control (Local)
         </button>
         <button
           onClick={() => setActiveTab('coordinador')}

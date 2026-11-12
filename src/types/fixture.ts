@@ -40,3 +40,12 @@ export interface Coach {
   categorias: string[];
   rol: string;
 }
+
+export interface MesaAssignment {
+  matchId: string;
+  planillero?: string;
+  cronometrista?: string;
+  operador24?: string;
+  responsable?: string;
+  notas?: string;
+}

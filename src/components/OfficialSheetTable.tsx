@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Match } from '../types/fixture';
-import { Download, Calendar, Printer, Plus, Trash2, Edit3, Check, Search, Filter } from 'lucide-react';
+import { Download, Calendar, Printer, Plus, Trash2, Edit3, Check, Search, Filter, ClipboardList } from 'lucide-react';
 import { exportOfficialSheetPdf } from '../utils/pdfExport';
 import { downloadIcsCalendar, getGoogleCalendarUrl } from '../utils/calendarExport';
 import { SOMISA_CREST_URL } from '../utils/assets';
@@ -11,6 +11,7 @@ interface OfficialSheetTableProps {
   onDeleteMatch: (id: string) => void;
   onAddMatch: () => void;
   onSelectForEdit: (match: Match) => void;
+  onNavigateToMesa?: () => void;
 }
 
 export const OfficialSheetTable: React.FC<OfficialSheetTableProps> = ({
@@ -19,6 +20,7 @@ export const OfficialSheetTable: React.FC<OfficialSheetTableProps> = ({
   onDeleteMatch,
   onAddMatch,
   onSelectForEdit,
+  onNavigateToMesa,
 }) => {
   const [filterType, setFilterType] = useState<'todos' | 'somisa-local' | 'somisa-visitante' | 'pendientes' | 'condicionales'>('todos');
   const [searchTerm, setSearchTerm] = useState('');
@@ -158,6 +160,17 @@ export const OfficialSheetTable: React.FC<OfficialSheetTableProps> = ({
               <Printer className="w-3.5 h-3.5 text-slate-600" />
               Imprimir
             </button>
+
+            {onNavigateToMesa && (
+              <button
+                onClick={onNavigateToMesa}
+                className="px-3 py-1.5 text-xs font-bold text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200/90 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs"
+                title="Generar resumen de partidos de local para WhatsApp y armar la mesa de control"
+              >
+                <ClipboardList className="w-3.5 h-3.5 text-blue-700" />
+                <span>Mesa de Control (Local WA)</span>
+              </button>
+            )}
 
             <button
               onClick={onAddMatch}
