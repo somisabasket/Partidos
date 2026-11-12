@@ -596,25 +596,67 @@ SOMISA (Somisa, Somisa A o Somisa B) es el equipo principal de nuestro club.
         canchaAsignada = `${item.local} (Visitante)`;
       }
 
-      // Assign coach by category
+      // Assign coach by category and division according to official staff:
+      // Diego: Proximo (U21) (M), Mayores (1°) (M) Somisa A
+      // Lucas: Cadetes (U15) (M) Somisa A, Juveniles (U17) (M) Somisa A
+      // Naza: U7 (Mixto), U9 (Mixto), Mini (U11) (Mixto) Somisa A
+      // Franco: Mini (U11) (Mixto) Somisa B, Cadetes (U15) (M) Somisa B
+      // Juan: Infantiles (U13) (F), Cadetes (U15) (F), Juveniles (U17) (F), Juveniles (U17) (M) Somisa B, Mayores (F)
+      // Ruso: U9 (Mixto), Mini (U11) (Mixto) Somisa A, Mini (U11) (F), Mayores (1°) (M) Somisa B
       const cat = (item.categoria || '').toLowerCase();
-      let entrenador = 'Prof. Marcos';
+      const isTeamB = (item.local || '').includes('Somisa B') || (item.visitante || '').includes('Somisa B');
+      const isTeamA = (item.local || '').includes('Somisa A') || (item.visitante || '').includes('Somisa A');
+      const isFem = item.rama === 'F';
+
+      let entrenador = 'Prof. Naza';
       let entrenadorTel = '+54 9 336 411-2233';
-      if (cat.includes('15') || cat.includes('cadetes')) {
-        entrenador = 'Prof. Juan Martín';
-        entrenadorTel = '+54 9 336 422-9900';
-      } else if (cat.includes('17') || cat.includes('juveniles') || cat.includes('u21')) {
-        entrenador = 'Prof. Lucas';
-        entrenadorTel = '+54 9 336 433-1122';
-      } else if (cat.includes('mayor') || cat.includes('1°')) {
-        entrenador = 'Prof. Nicolás';
+
+      if (isFem) {
+        if (cat.includes('mini') || cat.includes('u11')) {
+          entrenador = 'Prof. Ruso';
+          entrenadorTel = '+54 9 336 422-9900';
+        } else {
+          entrenador = 'Prof. Juan';
+          entrenadorTel = '+54 9 336 455-6677';
+        }
+      } else if (cat.includes('21') || cat.includes('proximo')) {
+        entrenador = 'Prof. Diego';
         entrenadorTel = '+54 9 336 488-3344';
-      } else if (item.rama === 'F') {
-        entrenador = 'Prof. Paula';
-        entrenadorTel = '+54 9 336 455-6677';
-      } else if (item.local?.includes('Somisa B') || item.visitante?.includes('Somisa B')) {
-        entrenador = 'Prof. Federico';
-        entrenadorTel = '+54 9 336 477-8899';
+      } else if (cat.includes('mayor') || cat.includes('1°')) {
+        if (isTeamB) {
+          entrenador = 'Prof. Ruso';
+          entrenadorTel = '+54 9 336 422-9900';
+        } else {
+          entrenador = 'Prof. Diego';
+          entrenadorTel = '+54 9 336 488-3344';
+        }
+      } else if (cat.includes('17') || cat.includes('juvenil')) {
+        if (isTeamB) {
+          entrenador = 'Prof. Juan';
+          entrenadorTel = '+54 9 336 455-6677';
+        } else {
+          entrenador = 'Prof. Lucas';
+          entrenadorTel = '+54 9 336 433-1122';
+        }
+      } else if (cat.includes('15') || cat.includes('cadete')) {
+        if (isTeamB) {
+          entrenador = 'Prof. Franco';
+          entrenadorTel = '+54 9 336 477-8899';
+        } else {
+          entrenador = 'Prof. Lucas';
+          entrenadorTel = '+54 9 336 433-1122';
+        }
+      } else if (cat.includes('mini') || cat.includes('u11')) {
+        if (isTeamB) {
+          entrenador = 'Prof. Franco';
+          entrenadorTel = '+54 9 336 477-8899';
+        } else {
+          entrenador = 'Prof. Naza';
+          entrenadorTel = '+54 9 336 411-2233';
+        }
+      } else if (cat.includes('u9') || cat.includes('pre mini') || cat.includes('u7')) {
+        entrenador = 'Prof. Naza';
+        entrenadorTel = '+54 9 336 411-2233';
       }
 
       return {

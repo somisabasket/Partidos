@@ -14,14 +14,19 @@ import { detectFixtureConflicts } from './utils/conflictDetector';
 import { SOMISA_CREST_URL } from './utils/assets';
 import { AlertTriangle, Sparkles, Calendar, Users, Send, CheckCircle2 } from 'lucide-react';
 
+const STAFF_CACHE_VERSION = 'v2_diego_lucas_naza_franco_juan_ruso';
+
 export default function App() {
-  // State with localStorage persistence
+  // State with localStorage persistence & cache versioning
   const [matches, setMatches] = useState<Match[]>(() => {
     try {
-      const saved = localStorage.getItem('somisa_basquet_matches');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      const version = localStorage.getItem('somisa_cache_version');
+      if (version === STAFF_CACHE_VERSION) {
+        const saved = localStorage.getItem('somisa_basquet_matches');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
       }
     } catch (e) {
       console.error('Error loading matches from storage:', e);
@@ -39,8 +44,17 @@ export default function App() {
 
   const [coaches, setCoaches] = useState<Coach[]>(() => {
     try {
-      const saved = localStorage.getItem('somisa_basquet_coaches');
-      if (saved) return JSON.parse(saved);
+      const version = localStorage.getItem('somisa_cache_version');
+      if (version === STAFF_CACHE_VERSION) {
+        const saved = localStorage.getItem('somisa_basquet_coaches');
+        if (saved) return JSON.parse(saved);
+      }
+    } catch (e) {}
+    // Initialize with current updated staff
+    try {
+      localStorage.setItem('somisa_cache_version', STAFF_CACHE_VERSION);
+      localStorage.setItem('somisa_basquet_coaches', JSON.stringify(COACHES));
+      localStorage.setItem('somisa_basquet_matches', JSON.stringify(INITIAL_MATCHES));
     } catch (e) {}
     return COACHES;
   });
@@ -60,6 +74,13 @@ export default function App() {
       console.error('Error saving matches:', e);
     }
   }, [matches]);
+
+  // Save coaches to localStorage whenever modified
+  useEffect(() => {
+    try {
+      localStorage.setItem('somisa_basquet_coaches', JSON.stringify(coaches));
+    } catch (e) {}
+  }, [coaches]);
 
   // Real-time conflict analysis
   const conflicts = detectFixtureConflicts(matches);
