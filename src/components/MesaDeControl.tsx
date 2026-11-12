@@ -24,11 +24,30 @@ interface MesaDeControlProps {
   matches: Match[];
 }
 
+// Rule: Mesa de Control is ONLY for categories from Mini (U11) onwards.
+// Categories U5, U7, U9 (Pre-Mini, Escuelita, Mosquitos) do NOT use official score table.
+export const isEligibleForMesa = (categoria: string): boolean => {
+  const cat = (categoria || '').toLowerCase().trim();
+  if (
+    cat.includes('u5') ||
+    cat.includes('u7') ||
+    cat.includes('u9') ||
+    cat.includes('pre mini') ||
+    cat.includes('pre-mini') ||
+    cat.includes('escuelita') ||
+    cat.includes('cebollita') ||
+    cat.includes('mosquito')
+  ) {
+    return false;
+  }
+  return true;
+};
+
 export const MesaDeControl: React.FC<MesaDeControlProps> = ({ matches }) => {
-  // Filter only home matches (SOMISA is Local)
+  // Filter only home matches that require Mesa de Control (Mini U11 onwards, excluding U5, U7, U9)
   const homeMatches = useMemo(() => {
     return matches
-      .filter((m) => m.local.toLowerCase().includes('somisa'))
+      .filter((m) => m.local.toLowerCase().includes('somisa') && isEligibleForMesa(m.categoria))
       .sort((a, b) => {
         // Sort by date then time
         if (a.fecha === b.fecha) {
@@ -38,7 +57,14 @@ export const MesaDeControl: React.FC<MesaDeControlProps> = ({ matches }) => {
       });
   }, [matches]);
 
-  // Extract unique dates with local matches
+  // Count matches excluded because they are U5, U7 or U9
+  const excludedYoungMatchesCount = useMemo(() => {
+    return matches.filter(
+      (m) => m.local.toLowerCase().includes('somisa') && !isEligibleForMesa(m.categoria)
+    ).length;
+  }, [matches]);
+
+  // Extract unique dates with local matches that need mesa
   const availableDates = useMemo(() => {
     const dates = Array.from(new Set(homeMatches.map((m) => m.fecha).filter(Boolean)));
     return dates;
@@ -78,10 +104,10 @@ export const MesaDeControl: React.FC<MesaDeControlProps> = ({ matches }) => {
   const [includeCourtNotes, setIncludeCourtNotes] = useState<boolean>(true);
   const [highlightVacancies, setHighlightVacancies] = useState<boolean>(true);
 
-  // Helper to check if category needs 24" shot clock
+  // Helper to check if category needs 24" shot clock (U13 onwards)
   const requiresShotClock = (categoria: string): boolean => {
     const cat = categoria.toLowerCase();
-    if (cat.includes('u9') || cat.includes('pre mini') || cat.includes('u7')) return false;
+    if (cat.includes('u9') || cat.includes('pre mini') || cat.includes('u7') || cat.includes('u5')) return false;
     if (cat.includes('mini') || cat.includes('u11')) return false;
     return true; // U13, U15, U17, U21, Mayores all use 24s shot clock
   };
@@ -184,10 +210,13 @@ export const MesaDeControl: React.FC<MesaDeControlProps> = ({ matches }) => {
 
     const dateHeader = selectedDate !== 'todas' ? formatDateLabel(selectedDate) : 'PRÓXIMOS ENCUENTROS DE LOCAL';
 
-    let msg = `🏀 *CLUB SOMISA - CONVOCATORIA MESA DE CONTROL* 🔵⚪\n`;
+    let msg = `🏀 *CLUB SOMISA - CONVOCATORIA GRUPO MESA DE CONTROL* 🔵⚪\n`;
+    msg += `👥 *Mensaje para:* Grupo de WhatsApp de Mesa de Control / Colaboradores\n`;
     msg += `📍 *Sede:* Club SOMISA (San Nicolás)\n`;
     msg += `📅 *${dateHeader.toUpperCase()}*\n\n`;
-    msg += `Hola a todos! 👋 Compartimos el cronograma de partidos en nuestro club y los lugares a cubrir en la *Mesa de Control*. Toda ayuda de familias y colaboradores es fundamental para que los chicos puedan jugar:\n\n`;
+    msg += `¡Hola a todos! 👋 Convocamos a las familias, delegados y colaboradores para cubrir la mesa de control de los partidos de *LOCAL* en nuestro club.\n`;
+    msg += `ℹ️ _(Recordatorio reglamentario: las categorías U5, U7 y U9 no llevan mesa de control oficial; la mesa inicia a partir de Mini U11 en adelante)._\n\n`;
+    msg += `📋 *CRONOGRAMA Y PUESTOS A CUBRIR:*\n\n`;
 
     // Group current matches by date if 'todas'
     const grouped: Record<string, Match[]> = {};
@@ -231,7 +260,7 @@ export const MesaDeControl: React.FC<MesaDeControlProps> = ({ matches }) => {
           : highlightVacancies ? `⚠️ *VACANTE (Se busca voluntario/a)*` : `_A confirmar_`;
         msg += `   • *Cronómetro:* ${cronoText}\n`;
 
-        // 24 Segundos
+        // 24 Segundos (Only for U13+)
         if (needs24) {
           const reloj24Text = assign.operador24?.trim() 
             ? `✅ ${assign.operador24}` 
@@ -247,14 +276,17 @@ export const MesaDeControl: React.FC<MesaDeControlProps> = ({ matches }) => {
       });
     });
 
+    msg += `👉 *¿CÓMO ANOTARTE EN EL GRUPO?*\n`;
+    msg += `Por favor, respondan en este grupo indicando qué *partido* y *puesto* (Planilla, Cronómetro o 24") pueden cubrir. ¡El aporte de todos es clave para que los chicos jueguen!\n\n`;
+
     if (includeReminders) {
-      msg += `📌 *RECORDATORIOS IMPORTANTES PARA LA MESA:*\n`;
-      msg += `• Por favor presentarse *20 minutos antes* del inicio para verificar planillas y cronómetro.\n`;
-      msg += `• Cargar las planillas digitales (GES Deportiva) / actas con tiempo.\n`;
-      msg += `• Los que puedan dar una mano en algún turno vacante, por favor responder por este grupo avisando qué partido pueden cubrir.\n\n`;
+      msg += `📌 *RECORDATORIOS IMPORTANTES:*\n`;
+      msg += `• Presentarse *20 minutos antes* del inicio del encuentro para verificar planillas y cronómetro.\n`;
+      msg += `• Cargar planillas digitales (GES Deportiva) / actas con tiempo.\n`;
+      msg += `• Reloj de posesión de 24" obligatorio a partir de U13.\n\n`;
     }
 
-    msg += `¡Muchas gracias a todos por colaborar con el básquet de SOMISA! 🙌\n`;
+    msg += `¡Muchas gracias a todas las familias y colaboradores por el compromiso de siempre! 🙌\n`;
     msg += `🔵⚪ *¡VAMOS SOMISA!* 🔵⚪`;
 
     return msg;
@@ -289,15 +321,15 @@ export const MesaDeControl: React.FC<MesaDeControlProps> = ({ matches }) => {
               className="w-12 h-12 md:w-14 md:h-14 object-contain shrink-0 drop-shadow-xs" 
             />
             <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200/80 mb-1">
-                <ClipboardList className="w-3 h-3 text-blue-700" />
-                Coordinación de Mesa de Control
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 mb-1">
+                <ClipboardList className="w-3 h-3 text-emerald-700" />
+                Convocatoria Grupo de WhatsApp
               </div>
               <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
                 Mesa de Control - Partidos de Local
               </h1>
               <p className="text-xs md:text-sm text-slate-500 mt-0.5">
-                Armá el resumen de los partidos en casa para enviar al grupo de WhatsApp y convocar planilleros, cronometristas y reloj de 24".
+                Generador de mensajes para el grupo de WhatsApp de Mesa de Control y colaboradores del Club SOMISA.
               </p>
             </div>
           </div>
@@ -312,17 +344,30 @@ export const MesaDeControl: React.FC<MesaDeControlProps> = ({ matches }) => {
               }`}
             >
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              <span>{copied ? '¡Copiado al Portapapeles!' : 'Copiar para WhatsApp'}</span>
+              <span>{copied ? '¡Copiado para el Grupo!' : 'Copiar para Grupo de WA'}</span>
             </button>
 
             <button
               onClick={handleOpenWhatsApp}
               className="px-4 py-2 text-xs md:text-sm font-bold text-white bg-blue-700 hover:bg-blue-800 rounded-xl transition-colors shadow-xs flex items-center gap-2"
-              title="Abrir WhatsApp para enviar mensaje"
+              title="Abrir WhatsApp para enviar al grupo de Mesa de Control"
             >
               <Send className="w-4 h-4" />
-              <span>Enviar a WhatsApp</span>
+              <span>Enviar al Grupo de WhatsApp</span>
             </button>
+          </div>
+        </div>
+
+        {/* Regulatory callout regarding U5, U7, U9 */}
+        <div className="mt-4 p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl flex items-start gap-2.5 text-xs text-blue-900">
+          <Info className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
+          <div>
+            <span className="font-bold">Reglamento de Mesa de Control:</span> Las categorías formativas iniciales (<strong>U5</strong>, <strong>U7</strong> y <strong>U9 / Pre-Mini</strong>) no llevan mesa de control oficial. Los turnos de mesa y cronometristas inician a partir de <strong>Mini (U11) en adelante</strong> (U11, U13, U15, U17, U21 y Mayores).
+            {excludedYoungMatchesCount > 0 && (
+              <span className="ml-1 text-blue-700 font-semibold">
+                ({excludedYoungMatchesCount} encuentros de U9/Pre-Mini de local excluidos automáticamente).
+              </span>
+            )}
           </div>
         </div>
 

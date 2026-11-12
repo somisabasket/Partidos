@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Match } from '../types/fixture';
-import { Download, Calendar, Printer, Plus, Trash2, Edit3, Check, Search, Filter, ClipboardList } from 'lucide-react';
+import { Download, Calendar, Printer, Plus, Trash2, Edit3, Check, Search, Filter, ClipboardList, Upload } from 'lucide-react';
 import { exportOfficialSheetPdf } from '../utils/pdfExport';
 import { downloadIcsCalendar, getGoogleCalendarUrl } from '../utils/calendarExport';
 import { SOMISA_CREST_URL } from '../utils/assets';
@@ -12,6 +12,7 @@ interface OfficialSheetTableProps {
   onAddMatch: () => void;
   onSelectForEdit: (match: Match) => void;
   onNavigateToMesa?: () => void;
+  onOpenUpload?: () => void;
 }
 
 export const OfficialSheetTable: React.FC<OfficialSheetTableProps> = ({
@@ -21,6 +22,7 @@ export const OfficialSheetTable: React.FC<OfficialSheetTableProps> = ({
   onAddMatch,
   onSelectForEdit,
   onNavigateToMesa,
+  onOpenUpload,
 }) => {
   const [filterType, setFilterType] = useState<'todos' | 'somisa-local' | 'somisa-visitante' | 'pendientes' | 'condicionales'>('todos');
   const [searchTerm, setSearchTerm] = useState('');
@@ -169,6 +171,17 @@ export const OfficialSheetTable: React.FC<OfficialSheetTableProps> = ({
               >
                 <ClipboardList className="w-3.5 h-3.5 text-blue-700" />
                 <span>Mesa de Control (Local WA)</span>
+              </button>
+            )}
+
+            {onOpenUpload && (
+              <button
+                onClick={onOpenUpload}
+                className="px-3 py-1.5 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs"
+                title="Importar fixture anual o semestral desde Excel (.xlsx) o documento PDF"
+              >
+                <Upload className="w-3.5 h-3.5 text-blue-700" />
+                <span>Importar Fixture (Excel / PDF)</span>
               </button>
             )}
 

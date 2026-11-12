@@ -117,8 +117,12 @@ export default function App() {
     }
   };
 
-  const handleMatchesLoaded = (newMatches: Match[]) => {
-    setMatches(newMatches);
+  const handleMatchesLoaded = (newMatches: Match[], mode: 'replace' | 'append' = 'replace') => {
+    if (mode === 'append') {
+      setMatches((prev) => [...prev, ...newMatches]);
+    } else {
+      setMatches(newMatches);
+    }
   };
 
   // KPI calculations
@@ -195,6 +199,7 @@ export default function App() {
             onAddMatch={handleAddMatch}
             onSelectForEdit={handleSelectForEdit}
             onNavigateToMesa={() => setActiveTab('mesa')}
+            onOpenUpload={() => setIsUploadOpen(true)}
           />
         )}
 

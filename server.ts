@@ -12,7 +12,7 @@ const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 // Body parser with large limit for image data
-app.use(express.json({ limit: '25mb' }));
+app.use(express.json({ limit: '50mb' }));
 
 // Initialize Google GenAI
 const ai = new GoogleGenAI({
@@ -511,42 +511,42 @@ app.post('/api/parse-fixture', async (req: Request, res: Response) => {
     const contents: any[] = [];
 
     const promptText = `
-Sos un asistente experto en básquetbol formativo de la Asociación de Básquetbol.
-Tu tarea es analizar la planilla de partidos adjunta y extraer todos los partidos en un formato estructurado.
+Sos un asistente experto en básquetbol formativo de la Asociación de Básquetbol (ABSN / CAB).
+Tu tarea es analizar el documento adjunto (puede ser un documento PDF con fixture anual o semestral, planilla oficial, captura de pantalla o tabla de Excel) y extraer TODOS los partidos de básquetbol en formato estructurado.
 
 Reglas de extracción:
-1. "CATEGORIA": Ej. U9, Mini (U11), Infantiles (U13), Cadetes (U15), Juveniles (U17), Proximo (U21), Mayores (1°), etc.
-2. "RAMA": Debe ser "Mixto", "F" (Femenino) o "M" (Masculino).
+1. "CATEGORIA": Ej. U9, Mini (U11), Infantiles (U13), Cadetes (U15), Juveniles (U17), Proximo (U21), Mayores (1°), U19, U12, etc. Normalizalo si dice "U-15", "Cat. 15", "Infantiles", etc.
+2. "RAMA": Debe ser "Mixto", "F" (Femenino) o "M" (Masculino). Si no lo aclara y es categoría infantil o cadetes sin F, verificar el contexto o colocar "M" o "Mixto".
 3. "LOCAL": Nombre exacto del equipo local (ej: "Somisa A", "Somisa B", "Somisa", "Don Bosco", "Regatas B", "Social", "ACSN", "Defensores", "Conesa", "Sacachispas", "Empalme Central", "Belgrano").
 4. "VISITANTE": Nombre exacto del equipo visitante.
-5. "FECHA": Formato DD/MM/YYYY (ej: 14/11/2026). Si está en blanco o a confirmar, dejar "".
+5. "FECHA": Formato DD/MM/YYYY (ej: 14/11/2026). Si está en blanco, a coordinar o solo dice "Fecha 1", dejar "" o la fecha estimada si aparece.
 6. "HORA": Formato HH:MM (ej: 18:30). Si está en blanco, dejar "".
-7. "OBSERV_CANCHA": Si indica cancha o detalle (ej: "Gim 2", "Amistoso", "Cancha 1"), de lo contrario "".
-8. "OBSERVACIONES": Si tiene comentarios como "Promo", "Final Copa oro J1", "Final Copa Plata J1", "J3 Si es necesario", etc.
-9. "ES_CONDICIONAL": true si dice "Si es necesario" o "J3", false de lo contrario.
+7. "OBSERV_CANCHA": Cancha o detalle (ej: "Gim 2", "Amistoso", "Cancha 1", "Estadio", etc.), de lo contrario "".
+8. "OBSERVACIONES": Comentarios como "Promo", "Final Copa oro J1", "J3 Si es necesario", ronda, jornada o fecha de torneo.
+9. "ES_CONDICIONAL": true si dice "Si es necesario", "J3", "Desempate" o es condicional, false de lo contrario.
 
-SOMISA (Somisa, Somisa A o Somisa B) es el equipo principal de nuestro club.
+IMPORTANTE: Extrae TODOS los partidos encontrados en todas las páginas o tablas del archivo sin omitir ninguno. SOMISA (Somisa, Somisa A o Somisa B) es el equipo principal de nuestro club.
 `;
 
     if (imageBase64) {
-      const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z+]+;base64,/, '');
+      const cleanBase64 = imageBase64.replace(/^data:[a-zA-Z0-9/+.-]+;base64,/, '');
       contents.push({
         inlineData: {
-          mimeType: mimeType || 'image/jpeg',
+          mimeType: mimeType || 'application/pdf',
           data: cleanBase64,
         },
       });
     }
 
     contents.push({
-      text: textData ? `${promptText}\n\nDatos de texto:\n${textData}` : promptText,
+      text: textData ? `${promptText}\n\nDatos de texto / tabla:\n${textData}` : promptText,
     });
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.8-flash',
       contents: { parts: contents },
       config: {
-        systemInstruction: 'Extrae con total fidelidad la tabla de partidos de básquetbol.',
+        systemInstruction: 'Extrae con total fidelidad y de manera completa todos los partidos del fixture de básquetbol anual o semestral.',
         responseMimeType: 'application/json',
         responseSchema: {
           type: Type.ARRAY,
