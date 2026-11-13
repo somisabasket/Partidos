@@ -29,11 +29,10 @@ interface MesaDeControlProps {
 export const isEligibleForMesa = (categoria: string): boolean => {
   const cat = (categoria || '').toLowerCase().trim();
   if (
-    cat.includes('u5') ||
-    cat.includes('u7') ||
-    cat.includes('u9') ||
+    /\bu[-\s]?[579]\b/i.test(cat) ||
     cat.includes('pre mini') ||
     cat.includes('pre-mini') ||
+    cat.includes('premini') ||
     cat.includes('escuelita') ||
     cat.includes('cebollita') ||
     cat.includes('mosquito')
@@ -75,6 +74,13 @@ export const MesaDeControl: React.FC<MesaDeControlProps> = ({ matches }) => {
     return availableDates.length > 0 ? availableDates[0] : 'todas';
   });
 
+  // Keep selectedDate valid when fixture matches change (e.g. after importing a new annual/semester fixture)
+  useEffect(() => {
+    if (selectedDate !== 'todas' && !availableDates.includes(selectedDate)) {
+      setSelectedDate(availableDates.length > 0 ? availableDates[0] : 'todas');
+    }
+  }, [availableDates, selectedDate]);
+
   const [includeConditionals, setIncludeConditionals] = useState<boolean>(true);
   const [selectedCancha, setSelectedCancha] = useState<string>('todas');
   const [copied, setCopied] = useState<boolean>(false);
@@ -107,8 +113,8 @@ export const MesaDeControl: React.FC<MesaDeControlProps> = ({ matches }) => {
   // Helper to check if category needs 24" shot clock (U13 onwards)
   const requiresShotClock = (categoria: string): boolean => {
     const cat = categoria.toLowerCase();
-    if (cat.includes('u9') || cat.includes('pre mini') || cat.includes('u7') || cat.includes('u5')) return false;
-    if (cat.includes('mini') || cat.includes('u11')) return false;
+    if (!isEligibleForMesa(cat)) return false;
+    if (cat.includes('mini') || /\bu[-\s]?11\b/i.test(cat)) return false;
     return true; // U13, U15, U17, U21, Mayores all use 24s shot clock
   };
 

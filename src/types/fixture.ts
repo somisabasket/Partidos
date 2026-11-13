@@ -14,6 +14,7 @@ export interface Match {
   observaciones: string;
   esCondicional: boolean;
   estado: EstadoPartido;
+  jornada?: string; // Ej: "Fecha 1", "Jornada 3", "Semifinal"
   canchaAsignada?: string;
   entrenador?: string;
   entrenadorTel?: string;

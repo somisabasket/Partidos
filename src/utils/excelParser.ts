@@ -149,7 +149,8 @@ export const parseExcelFixture = async (file: File): Promise<Match[]> => {
           rama: row.findIndex((c) => c.includes('rama') || c.includes('gener') || c === 'f/m' || c === 'sexo'),
           local: localIdx,
           visitante: visitIdx,
-          fecha: row.findIndex((c) => c.includes('fech') || c.includes('dia') || c.includes('date') || c.includes('jornada')),
+          jornada: row.findIndex((c) => c.includes('jornad') || c.includes('nro fech') || c.includes('fecha n') || c === 'nro' || c.includes('ronda')),
+          fecha: row.findIndex((c) => (c.includes('fech') || c.includes('dia') || c.includes('date')) && !c.includes('nro fech') && !c.includes('fecha n')),
           hora: row.findIndex((c) => c.includes('hor') || c.includes('time')),
           observCancha: row.findIndex((c) => c.includes('cancha') || c.includes('gim') || c.includes('estadio') || c.includes('sede')),
           observaciones: row.findIndex((c) => c.includes('observ') || c.includes('nota') || c.includes('coment') || c.includes('torneo')),
@@ -166,6 +167,7 @@ export const parseExcelFixture = async (file: File): Promise<Match[]> => {
         rama: 1,
         local: 2,
         visitante: 3,
+        jornada: -1,
         fecha: 4,
         hora: 5,
         observCancha: 6,
@@ -196,13 +198,18 @@ export const parseExcelFixture = async (file: File): Promise<Match[]> => {
         rama = 'Mixto';
       }
 
-      const fecha = parseExcelDate(row[colIndices.fecha]);
+      let jornada = colIndices.jornada >= 0 ? cleanStr(row[colIndices.jornada]) : '';
+      let fecha = parseExcelDate(row[colIndices.fecha]);
+      if (fecha && /^(fecha|jornada|f\.?)\s*\d+/i.test(fecha) && !jornada) {
+        jornada = fecha;
+        fecha = '';
+      }
+
       const hora = parseExcelTime(row[colIndices.hora]);
       const observCancha = cleanStr(row[colIndices.observCancha]);
       const observaciones = cleanStr(row[colIndices.observaciones]);
 
       const isSomisaLocal = local.toLowerCase().includes('somisa');
-      const isSomisaVisit = visitante.toLowerCase().includes('somisa');
 
       let estado: EstadoPartido = 'Confirmado';
       const esCondicional = observaciones.toLowerCase().includes('necesario') || observaciones.toLowerCase().includes('j3');
@@ -231,6 +238,7 @@ export const parseExcelFixture = async (file: File): Promise<Match[]> => {
         visitante: visitante || 'Rival',
         fecha,
         hora,
+        jornada,
         observCancha,
         observaciones,
         esCondicional,
@@ -251,6 +259,7 @@ export const parseExcelFixture = async (file: File): Promise<Match[]> => {
 export const downloadSampleExcelTemplate = () => {
   const templateRows = [
     {
+      'JORNADA': 'Fecha 1',
       'CATEGORIA': 'U9',
       'RAMA (F/M)': 'Mixto',
       'LOCAL': 'Somisa A',
@@ -261,6 +270,7 @@ export const downloadSampleExcelTemplate = () => {
       'OBSERVACIONES': '',
     },
     {
+      'JORNADA': 'Fecha 1',
       'CATEGORIA': 'Mini (U11)',
       'RAMA (F/M)': 'Mixto',
       'LOCAL': 'Somisa A',
@@ -271,6 +281,7 @@ export const downloadSampleExcelTemplate = () => {
       'OBSERVACIONES': 'Promo',
     },
     {
+      'JORNADA': 'Fecha 1',
       'CATEGORIA': 'Cadetes (U15)',
       'RAMA (F/M)': 'M',
       'LOCAL': 'Somisa A',
@@ -281,6 +292,7 @@ export const downloadSampleExcelTemplate = () => {
       'OBSERVACIONES': '',
     },
     {
+      'JORNADA': 'Fecha 1',
       'CATEGORIA': 'Juveniles (U17)',
       'RAMA (F/M)': 'M',
       'LOCAL': 'Somisa A',
@@ -291,6 +303,7 @@ export const downloadSampleExcelTemplate = () => {
       'OBSERVACIONES': '',
     },
     {
+      'JORNADA': 'Fecha 2',
       'CATEGORIA': 'Cadetes (U15)',
       'RAMA (F/M)': 'F',
       'LOCAL': 'Somisa',
@@ -301,6 +314,7 @@ export const downloadSampleExcelTemplate = () => {
       'OBSERVACIONES': 'Final Copa oro J1',
     },
     {
+      'JORNADA': 'Fecha 2',
       'CATEGORIA': 'Mayores (1°)',
       'RAMA (F/M)': 'M',
       'LOCAL': 'Defensores',
@@ -316,6 +330,7 @@ export const downloadSampleExcelTemplate = () => {
 
   // Set column widths
   worksheet['!cols'] = [
+    { wch: 12 }, // JORNADA
     { wch: 16 }, // CATEGORIA
     { wch: 12 }, // RAMA
     { wch: 18 }, // LOCAL

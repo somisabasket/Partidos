@@ -3,7 +3,7 @@ import express, { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -519,11 +519,12 @@ Reglas de extracción:
 2. "RAMA": Debe ser "Mixto", "F" (Femenino) o "M" (Masculino). Si no lo aclara y es categoría infantil o cadetes sin F, verificar el contexto o colocar "M" o "Mixto".
 3. "LOCAL": Nombre exacto del equipo local (ej: "Somisa A", "Somisa B", "Somisa", "Don Bosco", "Regatas B", "Social", "ACSN", "Defensores", "Conesa", "Sacachispas", "Empalme Central", "Belgrano").
 4. "VISITANTE": Nombre exacto del equipo visitante.
-5. "FECHA": Formato DD/MM/YYYY (ej: 14/11/2026). Si está en blanco, a coordinar o solo dice "Fecha 1", dejar "" o la fecha estimada si aparece.
+5. "FECHA": Formato DD/MM/YYYY (ej: 14/11/2026). Si está en blanco o a confirmar, dejar "".
 6. "HORA": Formato HH:MM (ej: 18:30). Si está en blanco, dejar "".
-7. "OBSERV_CANCHA": Cancha o detalle (ej: "Gim 2", "Amistoso", "Cancha 1", "Estadio", etc.), de lo contrario "".
-8. "OBSERVACIONES": Comentarios como "Promo", "Final Copa oro J1", "J3 Si es necesario", ronda, jornada o fecha de torneo.
-9. "ES_CONDICIONAL": true si dice "Si es necesario", "J3", "Desempate" o es condicional, false de lo contrario.
+7. "JORNADA": Número o nombre de fecha del torneo si aparece (ej: "Fecha 1", "Fecha 2", "Jornada 5", "Cuartos", "Semifinal", "Final"). Si no aparece, dejar "".
+8. "OBSERV_CANCHA": Cancha o detalle (ej: "Gim 2", "Amistoso", "Cancha 1", "Estadio", etc.), de lo contrario "".
+9. "OBSERVACIONES": Comentarios como "Promo", "Final Copa oro J1", "J3 Si es necesario", zona o ronda.
+10. "ES_CONDICIONAL": true si dice "Si es necesario", "J3", "Desempate" o es condicional, false de lo contrario.
 
 IMPORTANTE: Extrae TODOS los partidos encontrados en todas las páginas o tablas del archivo sin omitir ninguno. SOMISA (Somisa, Somisa A o Somisa B) es el equipo principal de nuestro club.
 `;
@@ -542,42 +543,89 @@ IMPORTANTE: Extrae TODOS los partidos encontrados en todas las páginas o tablas
       text: textData ? `${promptText}\n\nDatos de texto / tabla:\n${textData}` : promptText,
     });
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: { parts: contents },
-      config: {
-        systemInstruction: 'Extrae con total fidelidad y de manera completa todos los partidos del fixture de básquetbol anual o semestral.',
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              categoria: { type: Type.STRING, description: 'Categoría de básquet (ej: U9, Mini, U15, U17)' },
-              rama: { type: Type.STRING, description: 'Rama: Mixto, F o M' },
-              local: { type: Type.STRING, description: 'Club local' },
-              visitante: { type: Type.STRING, description: 'Club visitante' },
-              fecha: { type: Type.STRING, description: 'Fecha en DD/MM/YYYY o vacío' },
-              hora: { type: Type.STRING, description: 'Hora en HH:MM o vacío' },
-              observCancha: { type: Type.STRING, description: 'Observación de cancha (ej: Gim 2)' },
-              observaciones: { type: Type.STRING, description: 'Observaciones (ej: Promo, Final Copa oro)' },
-              esCondicional: { type: Type.BOOLEAN, description: 'True si es condicional o si es necesario' },
-            },
-            required: ['categoria', 'rama', 'local', 'visitante', 'fecha', 'hora'],
-          },
+    const responseSchema = {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          categoria: { type: Type.STRING, description: 'Categoría de básquet (ej: U9, Mini, U15, U17)' },
+          rama: { type: Type.STRING, description: 'Rama: Mixto, F o M' },
+          local: { type: Type.STRING, description: 'Club local' },
+          visitante: { type: Type.STRING, description: 'Club visitante' },
+          fecha: { type: Type.STRING, description: 'Fecha en DD/MM/YYYY o vacío' },
+          hora: { type: Type.STRING, description: 'Hora en HH:MM o vacío' },
+          jornada: { type: Type.STRING, description: 'Ej: Fecha 1, Jornada 2, etc. o vacío' },
+          observCancha: { type: Type.STRING, description: 'Observación de cancha (ej: Gim 2)' },
+          observaciones: { type: Type.STRING, description: 'Observaciones (ej: Promo, Final Copa oro)' },
+          esCondicional: { type: Type.BOOLEAN, description: 'True si es condicional o si es necesario' },
         },
+        required: ['categoria', 'rama', 'local', 'visitante', 'fecha', 'hora'],
       },
-    });
+    };
 
-    const rawJson = response.text || '[]';
+    const modelsToTry: Array<{ model: string; thinkingLevel: ThinkingLevel }> = [
+      { model: 'gemini-4-hydrogen', thinkingLevel: ThinkingLevel.LOW },
+      { model: 'gemini-3.1-flash-lite', thinkingLevel: ThinkingLevel.MINIMAL },
+      { model: 'gemini-4-hydrogen', thinkingLevel: ThinkingLevel.LOW },
+    ];
+
+    let response: any = null;
+    let lastError: any = null;
+
+    for (let attempt = 0; attempt < modelsToTry.length; attempt++) {
+      const { model, thinkingLevel } = modelsToTry[attempt];
+      try {
+        response = await ai.models.generateContent({
+          model,
+          contents: { parts: contents },
+          config: {
+            systemInstruction:
+              'Extrae con total fidelidad y de manera completa todos los partidos del fixture de básquetbol anual o semestral.',
+            responseMimeType: 'application/json',
+            responseSchema,
+            thinkingConfig: { thinkingLevel },
+          },
+        });
+        if (response && response.text) {
+          break;
+        }
+      } catch (err: any) {
+        lastError = err;
+        const errStr = String(err?.message || err || '');
+        const isTransient =
+          err?.status === 503 ||
+          err?.status === 429 ||
+          err?.status === 500 ||
+          errStr.includes('503') ||
+          errStr.includes('UNAVAILABLE') ||
+          errStr.includes('high demand') ||
+          errStr.includes('429');
+
+        console.warn(`Intento ${attempt + 1} con ${model} falló:`, errStr);
+
+        if (isTransient && attempt < modelsToTry.length - 1) {
+          const waitMs = 1200 * (attempt + 1);
+          await new Promise((r) => setTimeout(r, waitMs));
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!response) {
+      throw lastError || new Error('No se recibió respuesta del modelo de IA.');
+    }
+
+    const rawJson = (response.text || '[]')
+      .trim()
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/\s*```$/i, '');
     const parsedMatches = JSON.parse(rawJson);
 
     // Enrich items with IDs and helper defaults
     const enriched = parsedMatches.map((item: any, idx: number) => {
       const isSomisaLocal = item.local?.toLowerCase().includes('somisa');
-      const isSomisaVisit = item.visitante?.toLowerCase().includes('somisa');
-      const isHome = isSomisaLocal;
-      const isAway = isSomisaVisit;
 
       let estado = 'Confirmado';
       if (!item.fecha || !item.hora) {
@@ -590,22 +638,15 @@ IMPORTANTE: Extrae TODOS los partidos encontrados en todas las páginas o tablas
       let canchaAsignada = '';
       if (item.observCancha?.toLowerCase().includes('gim 2')) {
         canchaAsignada = 'Gimnasio 2';
-      } else if (isHome) {
+      } else if (isSomisaLocal) {
         canchaAsignada = 'Gimnasio Principal';
       } else {
         canchaAsignada = `${item.local} (Visitante)`;
       }
 
-      // Assign coach by category and division according to official staff:
-      // Diego: Proximo (U21) (M), Mayores (1°) (M) Somisa A
-      // Lucas: Cadetes (U15) (M) Somisa A, Juveniles (U17) (M) Somisa A
-      // Naza: U7 (Mixto), U9 (Mixto), Mini (U11) (Mixto) Somisa A
-      // Franco: Mini (U11) (Mixto) Somisa B, Cadetes (U15) (M) Somisa B
-      // Juan: Infantiles (U13) (F), Cadetes (U15) (F), Juveniles (U17) (F), Juveniles (U17) (M) Somisa B, Mayores (F)
-      // Ruso: U9 (Mixto), Mini (U11) (Mixto) Somisa A, Mini (U11) (F), Mayores (1°) (M) Somisa B
+      // Assign coach by category and division according to official staff
       const cat = (item.categoria || '').toLowerCase();
       const isTeamB = (item.local || '').includes('Somisa B') || (item.visitante || '').includes('Somisa B');
-      const isTeamA = (item.local || '').includes('Somisa A') || (item.visitante || '').includes('Somisa A');
       const isFem = item.rama === 'F';
 
       let entrenador = 'Prof. Naza';
@@ -654,7 +695,7 @@ IMPORTANTE: Extrae TODOS los partidos encontrados en todas las páginas o tablas
           entrenador = 'Prof. Naza';
           entrenadorTel = '+54 9 336 411-2233';
         }
-      } else if (cat.includes('u9') || cat.includes('pre mini') || cat.includes('u7')) {
+      } else if (cat.includes('u9') || cat.includes('pre mini') || cat.includes('u7') || cat.includes('u5')) {
         entrenador = 'Prof. Naza';
         entrenadorTel = '+54 9 336 411-2233';
       }
@@ -667,6 +708,7 @@ IMPORTANTE: Extrae TODOS los partidos encontrados en todas las páginas o tablas
         visitante: item.visitante || 'Rival',
         fecha: item.fecha || '',
         hora: item.hora || '',
+        jornada: item.jornada || '',
         observCancha: item.observCancha || '',
         observaciones: item.observaciones || '',
         esCondicional: Boolean(item.esCondicional),
@@ -675,6 +717,7 @@ IMPORTANTE: Extrae TODOS los partidos encontrados en todas las páginas o tablas
         entrenador,
         entrenadorTel,
         padresGrupo: `${item.categoria} ${item.rama} Somisa`,
+        citacionMinutos: cat.includes('mayor') || cat.includes('21') ? 60 : 45,
       };
     });
 
@@ -685,9 +728,27 @@ IMPORTANTE: Extrae TODOS los partidos encontrados en todas las páginas o tablas
     });
   } catch (error: any) {
     console.error('Error parsing fixture with Gemini:', error);
-    res.status(500).json({
+    const rawMsg = String(error?.message || error || '');
+    let friendlyMsg = 'Error al procesar el documento con IA.';
+    let statusCode = 500;
+
+    if (rawMsg.includes('503') || rawMsg.includes('UNAVAILABLE') || rawMsg.includes('high demand')) {
+      statusCode = 503;
+      friendlyMsg =
+        'El servicio de lectura por IA está con alta demanda en este momento (Error 503). Reintentá en unos segundos o importá el fixture en formato Excel (.xlsx / .csv) que se procesa al instante sin depender de la nube.';
+    } else if (rawMsg.includes('429') || rawMsg.includes('RESOURCE_EXHAUSTED')) {
+      statusCode = 429;
+      friendlyMsg =
+        'Se superó momentáneamente el límite de consultas a la IA (Error 429). Esperá unos segundos y volvé a intentar, o usá la carga por Excel (.xlsx).';
+    } else if (rawMsg.includes('API_KEY') || rawMsg.includes('403') || rawMsg.includes('PERMISSION_DENIED')) {
+      statusCode = 403;
+      friendlyMsg =
+        'La clave de API de Gemini no está configurada o no tiene permisos en Settings > Secrets.';
+    }
+
+    res.status(statusCode).json({
       success: false,
-      error: error?.message || 'Error al procesar la planilla con IA.',
+      error: friendlyMsg,
     });
   }
 });

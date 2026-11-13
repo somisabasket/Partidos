@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Match } from '../types/fixture';
-import { Download, Calendar, Printer, Plus, Trash2, Edit3, Check, Search, Filter, ClipboardList, Upload } from 'lucide-react';
+import { Download, Calendar, Printer, Plus, Trash2, Edit3, Check, Search, Filter, ClipboardList, Database, CalendarDays } from 'lucide-react';
 import { exportOfficialSheetPdf } from '../utils/pdfExport';
 import { downloadIcsCalendar, getGoogleCalendarUrl } from '../utils/calendarExport';
 import { SOMISA_CREST_URL } from '../utils/assets';
@@ -12,7 +12,9 @@ interface OfficialSheetTableProps {
   onAddMatch: () => void;
   onSelectForEdit: (match: Match) => void;
   onNavigateToMesa?: () => void;
-  onOpenUpload?: () => void;
+  onOpenAnnualUpload?: () => void;
+  onOpenWeeklyUpload?: () => void;
+  annualCount?: number;
 }
 
 export const OfficialSheetTable: React.FC<OfficialSheetTableProps> = ({
@@ -22,7 +24,9 @@ export const OfficialSheetTable: React.FC<OfficialSheetTableProps> = ({
   onAddMatch,
   onSelectForEdit,
   onNavigateToMesa,
-  onOpenUpload,
+  onOpenAnnualUpload,
+  onOpenWeeklyUpload,
+  annualCount = 0,
 }) => {
   const [filterType, setFilterType] = useState<'todos' | 'somisa-local' | 'somisa-visitante' | 'pendientes' | 'condicionales'>('todos');
   const [searchTerm, setSearchTerm] = useState('');
@@ -174,14 +178,25 @@ export const OfficialSheetTable: React.FC<OfficialSheetTableProps> = ({
               </button>
             )}
 
-            {onOpenUpload && (
+            {onOpenAnnualUpload && (
               <button
-                onClick={onOpenUpload}
+                onClick={onOpenAnnualUpload}
                 className="px-3 py-1.5 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs"
-                title="Importar fixture anual o semestral desde Excel (.xlsx) o documento PDF"
+                title="1. Importar Fixture Anual o Semestral completo (PDF o Excel)"
               >
-                <Upload className="w-3.5 h-3.5 text-blue-700" />
-                <span>Importar Fixture (Excel / PDF)</span>
+                <Database className="w-3.5 h-3.5 text-blue-700" />
+                <span>Fixture Anual ({annualCount})</span>
+              </button>
+            )}
+
+            {onOpenWeeklyUpload && (
+              <button
+                onClick={onOpenWeeklyUpload}
+                className="px-3 py-1.5 text-xs font-bold text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs"
+                title="2. Seleccionar partidos de esta semana desde el Fixture Anual o subir tira semanal"
+              >
+                <CalendarDays className="w-3.5 h-3.5 text-indigo-700" />
+                <span>Partidos Semanales</span>
               </button>
             )}
 

@@ -6,7 +6,7 @@ import { CoachNotifications } from './components/CoachNotifications';
 import { ParentsMessages } from './components/ParentsMessages';
 import { EmailToClubs } from './components/EmailToClubs';
 import { MesaDeControl } from './components/MesaDeControl';
-import { UploadSheetModal } from './components/UploadSheetModal';
+import { UploadSheetModal, UploadSection } from './components/UploadSheetModal';
 import { ExportModal } from './components/ExportModal';
 import { MatchEditModal } from './components/MatchEditModal';
 import { INITIAL_MATCHES, RIVAL_CLUBS, COACHES } from './data/initialData';
@@ -60,12 +60,31 @@ export default function App() {
     return COACHES;
   });
 
+  const [annualFixture, setAnnualFixture] = useState<Match[]>(() => {
+    try {
+      const saved = localStorage.getItem('somisa_annual_fixture');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.error('Error loading annual fixture from storage:', e);
+    }
+    return [];
+  });
+
   const [activeTab, setActiveTab] = useState<'planilla' | 'coordinador' | 'entrenadores' | 'padres' | 'clubes' | 'mesa'>('planilla');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [uploadInitialSection, setUploadInitialSection] = useState<UploadSection>('semanal');
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [isNewMatch, setIsNewMatch] = useState(false);
+
+  const handleOpenUpload = (section: UploadSection = 'semanal') => {
+    setUploadInitialSection(section);
+    setIsUploadOpen(true);
+  };
 
   // Save matches to localStorage whenever modified
   useEffect(() => {
@@ -82,6 +101,15 @@ export default function App() {
       localStorage.setItem('somisa_basquet_coaches', JSON.stringify(coaches));
     } catch (e) {}
   }, [coaches]);
+
+  // Save annual fixture to localStorage whenever modified
+  useEffect(() => {
+    try {
+      localStorage.setItem('somisa_annual_fixture', JSON.stringify(annualFixture));
+    } catch (e) {
+      console.error('Error saving annual fixture:', e);
+    }
+  }, [annualFixture]);
 
   // Real-time conflict analysis
   const conflicts = detectFixtureConflicts(matches);
@@ -125,6 +153,23 @@ export default function App() {
     }
   };
 
+  const handleSaveAnnualFixture = (newMatches: Match[], mode: 'replace' | 'append' = 'replace') => {
+    const now = Date.now();
+    const withIds = newMatches.map((m, idx) => ({
+      ...m,
+      id: m.id && mode === 'replace' ? `${m.id}-anual-${idx}` : `anual-${now}-${idx}`,
+    }));
+    if (mode === 'append') {
+      setAnnualFixture((prev) => [...prev, ...withIds]);
+    } else {
+      setAnnualFixture(withIds);
+    }
+  };
+
+  const handleClearAnnualFixture = () => {
+    setAnnualFixture([]);
+  };
+
   // KPI calculations
   const totalCount = matches.length;
   const somisaHomeCount = matches.filter((m) => m.local.toLowerCase().includes('somisa')).length;
@@ -138,7 +183,7 @@ export default function App() {
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onOpenUpload={() => setIsUploadOpen(true)}
+        onOpenUpload={() => handleOpenUpload(annualFixture.length === 0 ? 'anual' : 'semanal')}
         onOpenPdf={() => setIsExportOpen(true)}
         conflictCount={conflicts.length}
       />
@@ -199,7 +244,9 @@ export default function App() {
             onAddMatch={handleAddMatch}
             onSelectForEdit={handleSelectForEdit}
             onNavigateToMesa={() => setActiveTab('mesa')}
-            onOpenUpload={() => setIsUploadOpen(true)}
+            onOpenAnnualUpload={() => handleOpenUpload('anual')}
+            onOpenWeeklyUpload={() => handleOpenUpload('semanal')}
+            annualCount={annualFixture.length}
           />
         )}
 
@@ -275,8 +322,13 @@ export default function App() {
       <UploadSheetModal
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
+        initialSection={uploadInitialSection}
         onMatchesLoaded={handleMatchesLoaded}
         currentMatchCount={matches.length}
+        currentMatches={matches}
+        annualFixture={annualFixture}
+        onSaveAnnualFixture={handleSaveAnnualFixture}
+        onClearAnnualFixture={handleClearAnnualFixture}
       />
 
       <ExportModal
