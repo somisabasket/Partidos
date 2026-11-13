@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Match } from '../types/fixture';
-import { Download, Calendar, Printer, Plus, Trash2, Edit3, Check, Search, Filter, ClipboardList, Database, CalendarDays } from 'lucide-react';
+import { Download, Calendar, Printer, Plus, Trash2, Edit3, Check, Search, Filter, ClipboardList, Database, CalendarDays, FolderSync } from 'lucide-react';
 import { exportOfficialSheetPdf } from '../utils/pdfExport';
 import { downloadIcsCalendar, getGoogleCalendarUrl } from '../utils/calendarExport';
 import { SOMISA_CREST_URL } from '../utils/assets';
@@ -14,6 +14,7 @@ interface OfficialSheetTableProps {
   onNavigateToMesa?: () => void;
   onOpenAnnualUpload?: () => void;
   onOpenWeeklyUpload?: () => void;
+  onOpenDataSync?: () => void;
   annualCount?: number;
 }
 
@@ -26,6 +27,7 @@ export const OfficialSheetTable: React.FC<OfficialSheetTableProps> = ({
   onNavigateToMesa,
   onOpenAnnualUpload,
   onOpenWeeklyUpload,
+  onOpenDataSync,
   annualCount = 0,
 }) => {
   const [filterType, setFilterType] = useState<'todos' | 'somisa-local' | 'somisa-visitante' | 'pendientes' | 'condicionales'>('todos');
@@ -197,6 +199,17 @@ export const OfficialSheetTable: React.FC<OfficialSheetTableProps> = ({
               >
                 <CalendarDays className="w-3.5 h-3.5 text-indigo-700" />
                 <span>Partidos Semanales</span>
+              </button>
+            )}
+
+            {onOpenDataSync && (
+              <button
+                onClick={onOpenDataSync}
+                className="px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs"
+                title="Respaldar o descargar club-data.json para publicar tus datos en GitHub"
+              >
+                <FolderSync className="w-3.5 h-3.5 text-slate-600" />
+                <span>Datos GitHub</span>
               </button>
             )}
 

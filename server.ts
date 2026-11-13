@@ -496,6 +496,60 @@ app.get('/api/sample-fixture', (_req: Request, res: Response) => {
   });
 });
 
+// Sync club data snapshot into repository files (public/data/club-data.json & docs/data/club-data.json)
+// so copying/pushing to GitHub automatically carries all loaded fixtures, coaches, and mesa assignments
+const PUBLIC_DATA_FILE = path.resolve(__dirname, 'public', 'data', 'club-data.json');
+const DOCS_DATA_FILE = path.resolve(__dirname, 'docs', 'data', 'club-data.json');
+
+app.get('/api/club-data', (_req: Request, res: Response) => {
+  try {
+    if (fs.existsSync(PUBLIC_DATA_FILE)) {
+      const content = fs.readFileSync(PUBLIC_DATA_FILE, 'utf-8');
+      return res.json(JSON.parse(content));
+    }
+    return res.status(404).json({ success: false, error: 'Snapshot not found' });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: 'Error reading club-data.json' });
+  }
+});
+
+app.post('/api/club-data', (req: Request, res: Response) => {
+  try {
+    const payload = req.body;
+    if (!payload || typeof payload !== 'object') {
+      return res.status(400).json({ success: false, error: 'Payload inválido' });
+    }
+
+    const snapshot = {
+      version: 1,
+      updatedAt: payload.updatedAt || new Date().toISOString(),
+      matches: Array.isArray(payload.matches) ? payload.matches : [],
+      annualFixture: Array.isArray(payload.annualFixture) ? payload.annualFixture : [],
+      coaches: Array.isArray(payload.coaches) ? payload.coaches : [],
+      rivalClubs: Array.isArray(payload.rivalClubs) ? payload.rivalClubs : [],
+      mesaAssignments:
+        payload.mesaAssignments && typeof payload.mesaAssignments === 'object'
+          ? payload.mesaAssignments
+          : {},
+    };
+
+    const jsonString = JSON.stringify(snapshot, null, 2);
+
+    fs.mkdirSync(path.dirname(PUBLIC_DATA_FILE), { recursive: true });
+    fs.writeFileSync(PUBLIC_DATA_FILE, jsonString, 'utf-8');
+
+    if (fs.existsSync(path.resolve(__dirname, 'docs'))) {
+      fs.mkdirSync(path.dirname(DOCS_DATA_FILE), { recursive: true });
+      fs.writeFileSync(DOCS_DATA_FILE, jsonString, 'utf-8');
+    }
+
+    res.json({ success: true, updatedAt: snapshot.updatedAt });
+  } catch (error: any) {
+    console.error('Error saving club-data snapshot:', error);
+    res.status(500).json({ success: false, error: 'No se pudo guardar club-data.json' });
+  }
+});
+
 // Endpoint to parse uploaded image or raw text fixture using Gemini AI
 app.post('/api/parse-fixture', async (req: Request, res: Response) => {
   try {

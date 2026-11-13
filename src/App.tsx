@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
 import { OfficialSheetTable } from './components/OfficialSheetTable';
 import { ScheduleCoordinator } from './components/ScheduleCoordinator';
@@ -9,11 +9,16 @@ import { MesaDeControl } from './components/MesaDeControl';
 import { UploadSheetModal, UploadSection } from './components/UploadSheetModal';
 import { ExportModal } from './components/ExportModal';
 import { MatchEditModal } from './components/MatchEditModal';
+import { DataSyncModal } from './components/DataSyncModal';
 import { INITIAL_MATCHES, RIVAL_CLUBS, COACHES } from './data/initialData';
-import { Match, ClubContact, Coach } from './types/fixture';
+import { Match, ClubContact, Coach, MesaAssignment } from './types/fixture';
 import { detectFixtureConflicts } from './utils/conflictDetector';
 import { SOMISA_CREST_URL } from './utils/assets';
-import { AlertTriangle, Sparkles, Calendar, Users, Send, CheckCircle2 } from 'lucide-react';
+import {
+  ClubDataSnapshot,
+  fetchPublishedClubData,
+  syncClubDataToServer,
+} from './utils/clubDataSync';
 
 const STAFF_CACHE_VERSION = 'v2_diego_lucas_naza_franco_juan_ruso';
 
@@ -73,18 +78,76 @@ export default function App() {
     return [];
   });
 
+  const [mesaAssignments, setMesaAssignments] = useState<Record<string, MesaAssignment>>(() => {
+    try {
+      const saved = localStorage.getItem('somisa_mesa_assignments');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {};
+  });
+
   const [activeTab, setActiveTab] = useState<'planilla' | 'coordinador' | 'entrenadores' | 'padres' | 'clubes' | 'mesa'>('planilla');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [uploadInitialSection, setUploadInitialSection] = useState<UploadSection>('semanal');
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isDataSyncOpen, setIsDataSyncOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [isNewMatch, setIsNewMatch] = useState(false);
+
+  const hasHydratedRemoteRef = useRef(false);
+  const skipNextRemoteSyncRef = useRef(false);
 
   const handleOpenUpload = (section: UploadSection = 'semanal') => {
     setUploadInitialSection(section);
     setIsUploadOpen(true);
   };
+
+  const applyClubSnapshot = (snapshot: ClubDataSnapshot) => {
+    skipNextRemoteSyncRef.current = true;
+    if (Array.isArray(snapshot.matches) && snapshot.matches.length > 0) {
+      setMatches(snapshot.matches);
+    }
+    if (Array.isArray(snapshot.annualFixture)) {
+      setAnnualFixture(snapshot.annualFixture);
+    }
+    if (Array.isArray(snapshot.coaches) && snapshot.coaches.length > 0) {
+      setCoaches(snapshot.coaches);
+    }
+    if (Array.isArray(snapshot.rivalClubs) && snapshot.rivalClubs.length > 0) {
+      setRivalClubs(snapshot.rivalClubs);
+    }
+    if (snapshot.mesaAssignments && typeof snapshot.mesaAssignments === 'object') {
+      setMesaAssignments(snapshot.mesaAssignments);
+    }
+    try {
+      if (snapshot.updatedAt) {
+        localStorage.setItem('somisa_synced_snapshot_at', snapshot.updatedAt);
+      }
+    } catch {}
+  };
+
+  // Load newer published snapshot shipped in ./data/club-data.json (for GitHub Pages & shared devices)
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const published = await fetchPublishedClubData();
+        if (!active || !published || !published.updatedAt) return;
+        const lastSynced = localStorage.getItem('somisa_synced_snapshot_at') || '';
+        if (!lastSynced || published.updatedAt > lastSynced) {
+          applyClubSnapshot(published);
+        }
+      } finally {
+        if (active) {
+          hasHydratedRemoteRef.current = true;
+        }
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Save matches to localStorage whenever modified
   useEffect(() => {
@@ -110,6 +173,44 @@ export default function App() {
       console.error('Error saving annual fixture:', e);
     }
   }, [annualFixture]);
+
+  // Save mesa assignments to localStorage whenever modified
+  useEffect(() => {
+    try {
+      localStorage.setItem('somisa_mesa_assignments', JSON.stringify(mesaAssignments));
+    } catch (e) {}
+  }, [mesaAssignments]);
+
+  // Automatically sync all club state to workspace repository files (public/data/club-data.json & docs/data/club-data.json)
+  // when running with the Express backend, so copying/exporting to GitHub includes all loaded data
+  useEffect(() => {
+    if (!hasHydratedRemoteRef.current) return;
+    if (skipNextRemoteSyncRef.current) {
+      skipNextRemoteSyncRef.current = false;
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      const updatedAt = new Date().toISOString();
+      syncClubDataToServer({
+        version: 1,
+        updatedAt,
+        matches,
+        annualFixture,
+        coaches,
+        rivalClubs,
+        mesaAssignments,
+      }).then((saved) => {
+        if (saved) {
+          try {
+            localStorage.setItem('somisa_synced_snapshot_at', updatedAt);
+          } catch {}
+        }
+      });
+    }, 450);
+
+    return () => window.clearTimeout(timer);
+  }, [matches, annualFixture, coaches, rivalClubs, mesaAssignments]);
 
   // Real-time conflict analysis
   const conflicts = detectFixtureConflicts(matches);
@@ -246,12 +347,17 @@ export default function App() {
             onNavigateToMesa={() => setActiveTab('mesa')}
             onOpenAnnualUpload={() => handleOpenUpload('anual')}
             onOpenWeeklyUpload={() => handleOpenUpload('semanal')}
+            onOpenDataSync={() => setIsDataSyncOpen(true)}
             annualCount={annualFixture.length}
           />
         )}
 
         {activeTab === 'mesa' && (
-          <MesaDeControl matches={matches} />
+          <MesaDeControl
+            matches={matches}
+            assignments={mesaAssignments}
+            onAssignmentsChange={setMesaAssignments}
+          />
         )}
 
         {activeTab === 'coordinador' && (
@@ -345,6 +451,21 @@ export default function App() {
         onSave={handleSaveModalMatch}
         isNew={isNewMatch}
         coaches={coaches}
+      />
+
+      <DataSyncModal
+        isOpen={isDataSyncOpen}
+        onClose={() => setIsDataSyncOpen(false)}
+        currentSnapshot={{
+          version: 1,
+          updatedAt: new Date().toISOString(),
+          matches,
+          annualFixture,
+          coaches,
+          rivalClubs,
+          mesaAssignments,
+        }}
+        onImportSnapshot={applyClubSnapshot}
       />
     </div>
   );

@@ -27,6 +27,8 @@ import { Match } from '../types/fixture';
 import { INITIAL_MATCHES } from '../data/initialData';
 import { SAMPLE_SHEET_IMG_URL, SOMISA_CREST_URL } from '../utils/assets';
 import { parseExcelFixture, downloadSampleExcelTemplate } from '../utils/excelParser';
+import { parsePdfFixtureClientSide, parseRawTextFixtureClientSide } from '../utils/clientFixtureParser';
+import { isStaticHostingEnv } from '../utils/clubDataSync';
 
 export type UploadSection = 'anual' | 'semanal';
 
@@ -233,7 +235,7 @@ export const UploadSheetModal: React.FC<UploadSheetModalProps> = ({
     });
   };
 
-  // Process PDF, Image, or Text via backend
+  // Process PDF, Image, or Text (with native browser fallback for GitHub Pages)
   const handleProcessWithGemini = async () => {
     if (!selectedFile && activeTab !== 'text') {
       setErrorMessage('Por favor seleccione un archivo para analizar.');
@@ -245,52 +247,134 @@ export const UploadSheetModal: React.FC<UploadSheetModalProps> = ({
     setSuccessMessage(null);
     setPreviewMatches(null);
 
-    try {
-      let bodyData: any = {};
+    const isStatic = isStaticHostingEnv();
 
+    const finishSuccess = (matches: Match[], sourceLabel: string) => {
+      setPreviewMatches(matches);
+      setSuccessMessage(
+        `¡Lectura exitosa (${sourceLabel})! Se identificaron ${matches.length} partidos listos para ${
+          section === 'anual' ? 'el Fixture Anual' : 'los Partidos Semanales'
+        }.`
+      );
+    };
+
+    try {
+      // 1) TEXT TAB
       if (activeTab === 'text') {
         if (!rawText.trim()) {
           throw new Error('Por favor ingrese el texto de la tabla o fixture para procesar.');
         }
-        bodyData = { textData: rawText };
-      } else if (selectedFile) {
+
+        if (!isStatic) {
+          try {
+            const res = await fetch('/api/parse-fixture', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ textData: rawText }),
+            });
+            const ct = res.headers.get('content-type') || '';
+            if (ct.includes('application/json')) {
+              const data = await res.json();
+              if (res.ok && data.success && Array.isArray(data.matches) && data.matches.length > 0) {
+                finishSuccess(data.matches, 'IA');
+                return;
+              }
+            }
+          } catch {
+            // Fall through to client-side text parser
+          }
+        }
+
+        const localMatches = parseRawTextFixtureClientSide(rawText);
+        if (localMatches.length === 0) {
+          throw new Error(
+            'No se pudieron detectar partidos en el texto pegado. Probá incluir columnas o separadores tipo "Somisa A vs Regatas B - 14/11/2026 17:30".'
+          );
+        }
+        finishSuccess(localMatches, 'procesamiento local');
+        return;
+      }
+
+      // 2) PDF TAB
+      if (activeTab === 'pdf' && selectedFile) {
+        if (!isStatic) {
+          try {
+            const base64Data = await fileToBase64(selectedFile);
+            const res = await fetch('/api/parse-fixture', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                imageBase64: base64Data,
+                mimeType: selectedFile.type || 'application/pdf',
+              }),
+            });
+            const ct = res.headers.get('content-type') || '';
+            if (ct.includes('application/json')) {
+              const data = await res.json();
+              if (res.ok && data.success && Array.isArray(data.matches) && data.matches.length > 0) {
+                finishSuccess(data.matches, 'IA');
+                return;
+              }
+            }
+          } catch {
+            // Fall through to browser PDF parser
+          }
+        }
+
+        // Browser-native PDF parsing (100% compatible with GitHub Pages)
+        const pdfResult = await parsePdfFixtureClientSide(selectedFile);
+        if (pdfResult.matches.length > 0) {
+          finishSuccess(pdfResult.matches, `PDF local · ${pdfResult.pageCount} pág.`);
+          return;
+        }
+
+        if (pdfResult.extractedCharCount < 25) {
+          throw new Error(
+            'Este PDF parece ser una imagen escaneada sin texto seleccionable. Para importarlo desde GitHub Pages usá un PDF digital con texto o exportalo como Excel (.xlsx / .csv).'
+          );
+        }
+
+        throw new Error(
+          'Se leyó el texto del PDF pero no se reconocieron cruces de partidos estándar. Probá descargarlo como Excel (.xlsx) o copiar el texto en la pestaña "Pegar Texto".'
+        );
+      }
+
+      // 3) IMAGE TAB
+      if (activeTab === 'image' && selectedFile) {
+        if (isStatic) {
+          throw new Error(
+            'El reconocimiento automático de fotos requiere la versión con servidor en la nube. En GitHub Pages podés importar directamente archivos Excel (.xlsx / .csv), documentos PDF con texto o Pegar Texto.'
+          );
+        }
+
         const base64Data = await fileToBase64(selectedFile);
-        bodyData = {
-          imageBase64: base64Data,
-          mimeType: selectedFile.type || (activeTab === 'pdf' ? 'application/pdf' : 'image/jpeg'),
-        };
+        const res = await fetch('/api/parse-fixture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64: base64Data,
+            mimeType: selectedFile.type || 'image/jpeg',
+          }),
+        });
+
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          throw new Error(
+            'El reconocimiento de fotos no está disponible en modo estático (GitHub Pages). Usá Excel (.xlsx), PDF con texto o Pegar Texto.'
+          );
+        }
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Error al procesar la imagen con el servidor.');
+        }
+
+        if (!data.matches || data.matches.length === 0) {
+          throw new Error('No se pudieron detectar partidos en la imagen. Verificá que sea legible.');
+        }
+
+        finishSuccess(data.matches, 'IA');
       }
-
-      const res = await fetch('/api/parse-fixture', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bodyData),
-      });
-
-      const contentType = res.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
-        throw new Error(
-          'El servidor de lectura inteligente por IA no está disponible en el modo estático (GitHub Pages). Podés importar el fixture al instante usando un archivo Excel (.xlsx / .csv) o ingresar desde la versión completa en la nube.'
-        );
-      }
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Error al procesar el fixture con el servidor.');
-      }
-
-      if (!data.matches || data.matches.length === 0) {
-        throw new Error(
-          'La IA no pudo detectar partidos en el documento. Verifique que la imagen o PDF sea legible.'
-        );
-      }
-
-      setPreviewMatches(data.matches);
-      setSuccessMessage(
-        `¡Extracción exitosa! Se identificaron ${data.matches.length} partidos listos para ${
-          section === 'anual' ? 'el Fixture Anual' : 'los Partidos Semanales'
-        }.`
-      );
     } catch (err: any) {
       console.error(err);
       setErrorMessage(err.message || 'Error en la conexión o procesamiento del archivo.');

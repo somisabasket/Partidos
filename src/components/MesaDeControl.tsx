@@ -22,6 +22,8 @@ import {
 
 interface MesaDeControlProps {
   matches: Match[];
+  assignments?: Record<string, MesaAssignment>;
+  onAssignmentsChange?: React.Dispatch<React.SetStateAction<Record<string, MesaAssignment>>>;
 }
 
 // Rule: Mesa de Control is ONLY for categories from Mini (U11) onwards.
@@ -42,7 +44,11 @@ export const isEligibleForMesa = (categoria: string): boolean => {
   return true;
 };
 
-export const MesaDeControl: React.FC<MesaDeControlProps> = ({ matches }) => {
+export const MesaDeControl: React.FC<MesaDeControlProps> = ({
+  matches,
+  assignments: controlledAssignments,
+  onAssignmentsChange,
+}) => {
   // Filter only home matches that require Mesa de Control (Mini U11 onwards, excluding U5, U7, U9)
   const homeMatches = useMemo(() => {
     return matches
@@ -85,8 +91,8 @@ export const MesaDeControl: React.FC<MesaDeControlProps> = ({ matches }) => {
   const [selectedCancha, setSelectedCancha] = useState<string>('todas');
   const [copied, setCopied] = useState<boolean>(false);
 
-  // Mesa assignments stored in localStorage
-  const [assignments, setAssignments] = useState<Record<string, MesaAssignment>>(() => {
+  // Mesa assignments stored in localStorage (or controlled from App.tsx for repository sync)
+  const [internalAssignments, setInternalAssignments] = useState<Record<string, MesaAssignment>>(() => {
     try {
       const saved = localStorage.getItem('somisa_mesa_assignments');
       if (saved) return JSON.parse(saved);
@@ -95,6 +101,9 @@ export const MesaDeControl: React.FC<MesaDeControlProps> = ({ matches }) => {
     }
     return {};
   });
+
+  const assignments = controlledAssignments !== undefined ? controlledAssignments : internalAssignments;
+  const setAssignments = onAssignmentsChange || setInternalAssignments;
 
   // Save assignments to localStorage
   useEffect(() => {
